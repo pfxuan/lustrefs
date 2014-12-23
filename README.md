@@ -10,10 +10,10 @@ This plugin replaces the hadoop file system (typically, the Hadoop Distributed F
 LustreFileSystem, which writes to a shared Lustre mount point that is accessible by all machines
 in the Hadoop cluster.
 
-** NOTE: This plugin is based off of the GlusterFS Hadoop plugin with proprietary Seagate
+**NOTE: This plugin is based off of the GlusterFS Hadoop plugin with proprietary Seagate
 enhancements for Lustre. The original plugin, with source, is available
 [here](https://forge.gluster.org/hadoop) with some documentation
-[here](https://forge.gluster.org/hadoop/pages/Architecture). **
+[here](https://forge.gluster.org/hadoop/pages/Architecture)**
 
 
 REQUIREMENTS
@@ -23,7 +23,7 @@ REQUIREMENTS
   * Lustre client installed on all machines in the cluster
   * Java Runtime Environment (JRE, for Hadoop)
 
-NOTE: Plugin relies on one *nix command line utility to function properly:
+NOTE: Plugin relies on one Unix command line utility to function properly:
 
   * getfattr: Used to fetch Extended Attributes of a file
 
