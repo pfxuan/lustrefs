@@ -4,7 +4,7 @@ Lustre Hadoop Plugin
 INTRODUCTION
 ------------
 
-This document describes how to use Lustre (http://www.gluster.org/) as a backing store with Hadoop.
+This document describes how to use Lustre as a backing store with Hadoop.
 
 This plugin replaces the hadoop file system (typically, the Hadoop Distributed File System) with the 
 LustreFileSystem, which writes to a shared Lustre mount point that is accessible by all machines
@@ -36,7 +36,7 @@ INSTALLATION
 
 Building the plugin from source requires [Maven](http://maven.apache.org/) and the JDK.
 
-Change to glusterfs-hadoop directory in the GlusterFS source tree and build the plugin.
+Change to lustre-hadoop directory and build the plugin.
 
   * cd lustre_hadoop/
   * mvn package -DskipTests
