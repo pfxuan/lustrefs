@@ -5,12 +5,6 @@
         <value>lustrefs:///</value>
     </property>
 
-
-    <property>
-        <name>hadoop.tmp.dir</name>
-        <value>/home/lustre_mount/yarn_tmp</value>
-    </property>
-
     <property>
         <name>fs.AbstractFileSystem.lustrefs.impl</name>
         <value>org.apache.hadoop.fs.local.LustreFs</value>
