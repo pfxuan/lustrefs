@@ -42,7 +42,9 @@ public class LustreVolume extends RawLocalFileSystem{
     public static final int OVERRIDE_WRITE_BUFFER_SIZE = 1024 * 4;
     public static final int OPTIMAL_WRITE_BUFFER_SIZE = 1024 * 128;
     
-    public static final URI NAME = URI.create("lustrefs:///");
+    public static final String fname = "lustrefs:";
+    
+    public static final URI NAME = URI.create(fname + "///");
     
     protected String root=null;
     protected String superUser=null;
@@ -110,7 +112,13 @@ public class LustreVolume extends RawLocalFileSystem{
       if (!path.isAbsolute()) {
         path = new Path(getWorkingDirectory(), path);
       }
-      return new File(root + path.toUri().getPath());
+      String s = path.toString();
+      if (s.startsWith(fname + root) || s.startsWith(fname + "/" + root) || 
+            s.startsWith(fname + "//" + root) || s.startsWith(fname + "///" + root) ) {
+        return new File(path.toUri().getPath());
+      } else {
+        return new File(root + path.toUri().getPath());
+      }
     }
   
     /**
@@ -119,7 +127,7 @@ public class LustreVolume extends RawLocalFileSystem{
      */
     protected Path getInitialWorkingDirectory() {
 		/* apache's unit tests use a default working direcotry like this: */
-       return new Path(this.NAME + "user/" + System.getProperty("user.name"));
+       return new Path(this.NAME + root + "/" + "user/" + System.getProperty("user.name"));
         /* The super impl returns the users home directory in unix */
 		//return super.getInitialWorkingDirectory();
 	}
@@ -164,7 +172,6 @@ public class LustreVolume extends RawLocalFileSystem{
     public FileStatus[] listStatus(Path f) throws IOException {
         File localf = pathToFile(f);
         FileStatus[] results;
-
         if (!localf.exists()) {
           throw new FileNotFoundException("File " + f + " does not exist");
         }
@@ -234,31 +241,7 @@ public class LustreVolume extends RawLocalFileSystem{
     	super.setPermission(p,permission);
     	updateAcl(p);
     }
-//     public BlockLocation[] getFileBlockLocations(FileStatus file,long start,long len) throws IOException{
-//         File f=pathToFile(file.getPath());
-//         BlockLocation[] result=null;
-// 
-//         result=attr.getPathInfo(f.getPath(), start, len);
-//         if(result==null){
-//             log.info("Problem getting destination host for file "+f.getPath());
-//             return null;
-//         }
-// 
-//         return result;
-//     }
-/*    
-    @Override
-      public BlockLocation[] getFileBlockLocations(FileStatus file, 
-      long start, long len) throws IOException {
-      File f=pathToFile(file.getPath());
-      log.info("HUZZAH " + f.getPath());
 
-    String[] name = { "localhost:50010" };
-    String[] host = { "localhost" };
-    return new BlockLocation[] {
-      new BlockLocation(name, host, 0, 9) };
-  }
-    */
     public String toString(){
         return "Lustre Volume mounted at: " + root;
     }
