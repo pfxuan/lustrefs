@@ -163,7 +163,7 @@ here are the steps required to make the system work.
 
 ###MULTI-TENANT CLOUDERA SETUP
 
-(**Note: this has not been tested by us yet! This is speculation.**)
+**NOTE: this has not been tested by us yet! This is speculation.**
 Hadoop has a special configuration called
 ["Secure Mode"](https://hadoop.apache.org/docs/r2.6.0/hadoop-project-dist/hadoop-common/SecureMode.html)
 that allows for jobs to be run using the identity of the submitter, and not only 'yarn' (or other Hadoop-specific identity).
