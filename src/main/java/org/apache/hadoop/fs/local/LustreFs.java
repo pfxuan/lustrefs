@@ -21,7 +21,7 @@ import java.net.URISyntaxException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FilterFs;
 
-public class LustreFs extends FilterFs{
+public class LustreFs extends FilterFs {
 
     LustreFs(Configuration conf) throws IOException, URISyntaxException{
         super(new LustreVol(conf));

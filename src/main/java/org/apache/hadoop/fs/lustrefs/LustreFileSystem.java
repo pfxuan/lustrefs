@@ -35,7 +35,13 @@ public class LustreFileSystem extends FilterFileSystem{
         super(new LustreVolume());
         log.info("Initializing LustreFS.");
     }
-  
+
+    public LustreFileSystem(Configuration conf) {
+        super(new LustreVolume(conf));
+        log.info("Initializing LustreFS with conf.");
+    }
+   
+    
     /** Convert a path to a File. */
     public File pathToFile(Path path){
         return ((LustreVolume) fs).pathToFile(path);

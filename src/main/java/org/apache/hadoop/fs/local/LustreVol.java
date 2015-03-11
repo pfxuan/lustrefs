@@ -40,7 +40,7 @@ public class LustreVol extends RawLocalFsL{
        * This constructor has the signature needed by
        * {@link AbstractFileSystem#createFileSystem(URI, Configuration)}.
        * 
-       * @param theUri which must be that of localFs
+       * @param theUri which must be that of lustreFs
        * @param conf
        * @throws IOException
        * @throws URISyntaxException 

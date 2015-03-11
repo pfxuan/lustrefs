@@ -55,6 +55,11 @@ public class LustreVolume extends RawLocalFileSystem{
     
     public LustreVolume(Configuration conf){
         this();
+        try {
+            this.initialize(NAME, conf);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
         this.setConf(conf);
     }
     public URI getUri() { return NAME; }
@@ -82,8 +87,8 @@ public class LustreVolume extends RawLocalFileSystem{
                 }
                 //ACL setup
                 aclFilter = new AclPathFilter(conf);
-				superUser =  conf.get("lustrefs.daemon.user", null);
-				log.info("mapreduce/superuser daemon : " + superUser);
+		//superUser =  conf.get("lustrefs.daemon.user", null);
+		//log.info("mapreduce/superuser daemon : " + superUser);
 
                 //Working directory setup
                 Path workingDirectory = getInitialWorkingDirectory();
@@ -136,38 +141,37 @@ public class LustreVolume extends RawLocalFileSystem{
         return new Path(NAME.toString() + path.toURI().getRawPath().substring(root.length()));
      }
 
-     public boolean rename(Path src, Path dst) throws IOException {
-		File dest = pathToFile(dst);
-		
-		/* two HCFS semantics java.io.File doesn't honor */
-		if(dest.exists() && dest.isFile() || !(new File(dest.getParent()).exists())) return false;
-		
-		if (!dest.exists() && pathToFile(src).renameTo(dest)) {
-	      return true;
-	    }
-	    return FileUtil.copy(this, src, this, dst, true, getConf());
+    public boolean rename(Path src, Path dst) throws IOException {
+	File dest = pathToFile(dst);
+	/* two HCFS semantics java.io.File doesn't honor */
+        if(dest.exists() && dest.isFile() || !(new File(dest.getParent()).exists())) return false;
+	if (!dest.exists() && pathToFile(src).renameTo(dest)) {
+	    return true;
 	}
-	  /**
-	   * Delete the given path to a file or directory.
-	   * @param p the path to delete
-	   * @param recursive to delete sub-directories
-	   * @return true if the file or directory and all its contents were deleted
-	   * @throws IOException if p is non-empty and recursive is false 
-	   */
-	@Override
-	public boolean delete(Path p, boolean recursive) throws IOException {
-	    File f = pathToFile(p);
-	    if(!f.exists()){
-	    	/* HCFS semantics expect 'false' if attempted file deletion on non existent file */
-	    	return false;
-	    }else if (f.isFile()) {
-	      return f.delete();
-	    } else if (!recursive && f.isDirectory() && 
-	        (FileUtil.listFiles(f).length != 0)) {
-	      throw new IOException("Directory " + f.toString() + " is not empty");
-	    }
-	    return FileUtil.fullyDelete(f);
-	}
+	return FileUtil.copy(this, src, this, dst, true, getConf());
+    }
+    
+    /**
+    * Delete the given path to a file or directory.
+    * @param p the path to delete
+    * @param recursive to delete sub-directories
+    * @return true if the file or directory and all its contents were deleted
+    * @throws IOException if p is non-empty and recursive is false 
+    */
+    @Override
+    public boolean delete(Path p, boolean recursive) throws IOException {
+        File f = pathToFile(p);
+        if(!f.exists()){
+            /* HCFS semantics expect 'false' if attempted file deletion on non existent file */
+            return false;
+        }else if (f.isFile()) {
+            return f.delete();
+        } else if (!recursive && f.isDirectory() && 
+            (FileUtil.listFiles(f).length != 0)) {
+            throw new IOException("Directory " + f.toString() + " is not empty");
+        }
+        return FileUtil.fullyDelete(f);
+    }
 	  
     public FileStatus[] listStatus(Path f) throws IOException {
         File localf = pathToFile(f);
@@ -181,6 +185,7 @@ public class LustreVolume extends RawLocalFileSystem{
         }
 
         File[] names = localf.listFiles();
+        Arrays.sort(names);
         if (names == null) {
           return null;
         }
@@ -207,7 +212,7 @@ public class LustreVolume extends RawLocalFileSystem{
         if (path.exists()) {
           return new LustreFileStatus(pathToFile(f), getDefaultBlockSize(), this);
         } else {
-          throw new FileNotFoundException( "File " + f + " does not exist.");
+          throw new FileNotFoundException( "File " + f + " does not exist with path " + path);
         }
       }
     
