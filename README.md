@@ -77,8 +77,8 @@ These changes will need to be made identically on all nodes and services restart
 
 <property>
   <name>fs.lustrefs.mount</name>
-  <value>/path/to/lustre/hadoop</value>
-  <description>This is the directory where Lustre is mounted</description>
+  <value>/mnt/lustre/hadoop</value>
+  <description>This is the directory on Lustre that acts as the root level for Hadoop services</description>
 </property>
 ```
 
@@ -205,10 +205,10 @@ After completing the steps above restart the cluster.
 
 Running jobs with Lustre is very similar to using HDFS.
 Paths are either relative to a users home directory, or absolute.
-The following commands are equivalent:
+The following commands are equivalent for a user named `jane`:
 
   * `$ hadoop jar application.jar appName inputDir ouputDir`
-  * `$ hadoop jar application.jar appName {$fs.lustrefs.mount}/user/{$username}/inputDir {$fs.lustrefs.mount}/user/{$username}/outputDir`
+  * `$ hadoop jar application.jar appName /mnt/lustre/hadoop/user/jane/inputDir /mnt/lustre/hadoop/user/jane/outputDir`
 
 Users can access data anywhere on Lustre that they have permissions to, even if they are outside of the
 `{$fs.lustrefs.mount}/user/{$username}` hierarchy.
@@ -217,7 +217,7 @@ HDFS can be run on the Hadoop nodes even with LustreFS as the default file syste
 Jobs can be run between HDFS and Lustre. The command below illustrates a job that
 takes data in from HDFS and outputs to Lustre:
 
-`$ hadoop jar application.jar appName hdfs://hdfs_namenode:8020/user/username/d1 d2`
+`$ hadoop jar application.jar appName hdfs://hdfs_namenode:8020/user/jane/d1 d2`
 
 ##FOR HACKERS
 
@@ -248,7 +248,7 @@ On a successful build the plugin will be present in the `target` directory. (NOT
 ##CONTACT
 
 For general inquiries, please contact <hadoop.on.lustre@seagate.com>.
-For techinical topics, please contact Stephen Skory <stephen.skory@seagate.com>.
+For techinical inquries, please contact Stephen Skory <stephen.skory@seagate.com>.
 
 ##COPYRIGHT
 
