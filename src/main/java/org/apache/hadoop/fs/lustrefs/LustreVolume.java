@@ -66,13 +66,11 @@ public class LustreVolume extends RawLocalFileSystem{
     
     public void setConf(Configuration conf){
         super.setConf(conf);
-        //String getfattrcmd = null;
         if(conf!=null){
          
             try{
                 root=conf.get("fs.lustrefs.mount", null);
                 log.info("Root of Lustre file system is " + root);
-                //getfattrcmd = conf.get("fs.glusterfs.getfattrcmd", null);
                 String jtSysDir = conf.get("mapreduce.jobtracker.system.dir", null);
                 Path mapredSysDirectory = null;
                 
