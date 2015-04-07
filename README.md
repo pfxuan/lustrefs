@@ -204,7 +204,7 @@ Here are some brief notes for consideration:
 After completing the steps above restart the cluster.
 
 Running jobs with Lustre is very similar to using HDFS.
-Paths are either relative to a users home directory, or absolute.
+Paths are either relative to a users directory under `{$fs.lustrefs.mount}`, or absolute.
 The following commands are equivalent for a user named `jane`:
 
   * `$ hadoop jar application.jar appName inputDir ouputDir`
