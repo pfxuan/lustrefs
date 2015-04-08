@@ -6,8 +6,7 @@ This document describes how to use Lustre as the primary backing store with Hado
 This plugin replaces the default hadoop file system (typically, the Hadoop Distributed File System, HDFS) with the 
 Lustre File System, which writes to a shared Lustre mount point that is accessible by all machines
 in the Hadoop cluster.
-Please note that HDFS is compatible with this plugin and can be kept running.
-It does not need to be turned off, although it is optional.
+Please note that HDFS is compatible with this plugin and does not need to be turned off when using this plugin & configuration.
 
 **NOTE: This plugin is based off of the GlusterFS Hadoop plugin with
 modifications for Lustre. The original plugin, with source, is available
@@ -25,6 +24,8 @@ We have included the GlusterFS plugin source within the repository as well.**
   * Hadoop
 
 ##INSTALLATION
+
+**We recommend reading through this full README before beginning the installation.**
 
 The installation has the following steps:
 
@@ -49,6 +50,7 @@ For example, within Cloudera, below is where the plugin jar can be placed on all
 
 Most plugin configuration is done in XML files with <name><value> tags in each <property> block.
 These changes will need to be made identically on all nodes and services restarted to take effect.
+These changes should be made through the Cloudera or Hortonworks web interface if using those distributions.
   
 ###REQUIRED CONFIGURATION CHANGES
 
@@ -156,18 +158,21 @@ If it is acceptible to have all the files needed for Hadoop jobs owned by/access
 here are the recommended steps required to make the system work:
 
   * After making the XML changes above, and before (re)staring Hadoop, create a directory on
-    Lustre that is world-writeable (e.g. `/mnt/lustre/hadoop`).
-    This directory should be the
-    same as the value of `fs.lustrefs.mount` in the XML files.
+    Lustre that is **world-writeable** (e.g. `chmod 777`).
+    This is the directory specified in the `fs.lustrefs.mount` parameter in the XML file(s).
     Hadoop (and ecosystem services)
-    will make properly-owned directories under this directory upon (re)start.
+    will make properly-owned subdirectories under this directory upon (re)start.
     Once the various services are known to be working, the permissions of this directory can
-    be rolled back. The final ownership of the directory is not important.
+    be rolled back to be less permissive (e.g. `chmod 755`).
+    The final ownership of the directory is not important, but we recommend
+    setting the ownership to 'root' or one of the hadoop service accounts.
   * All UNIX accounts used for Hadoop services (e.g. 'yarn' or 'mapred') need to be created on the Lustre MGS/MDS.
     Specifically, the UIDs/GIDs, and group memberships of the Hadoop UNIX service accounts,
     need to be mirrored on the Lustre MGS/MDS.
-  * A directory for the 'yarn' user (named 'yarn') will have to be created and `chown`ed in the
-    `{$fs.lustrefs.mount}/user` directory. 
+  * If the YARN service is run by the 'yarn' user, a directory for the 'yarn' user will have to be created and
+    `chown`ed in the `{$fs.lustrefs.mount}/user` directory. Example:
+    `mkdir /mnt/lustre/hadoop/user/yarn; chown yarn. /mnt/lustre/hadoop/user/yarn`
+    Other Hadoop ecosystem services may need similar directories created.
 
 
 ###MULTI-TENANT SETUP
@@ -175,23 +180,28 @@ here are the recommended steps required to make the system work:
 Hadoop has a special configuration called
 [Secure Mode](https://hadoop.apache.org/docs/r2.6.0/hadoop-project-dist/hadoop-common/SecureMode.html)
 that allows for jobs to be run using the identity of the submitter.
-When secure-mode Hadoop is configured, a user obtains a Kerberos "ticket" and then submits a job.
-With the ticket, jobs will be run under the users UNIX identity, which will allow Hadoop jobs to access data
-on Lustre as the user.
+When secure-mode Hadoop is configured, a user obtains a Kerberos "ticket" and then submits a job in the usual way.
+With the ticket, jobs will be run under the user's UNIX identity, which will allow Hadoop jobs to access data
+on Lustre as the user. 
 
 Configuring secure-mode Hadoop is outside the scope of this documentation.
 Here are some brief notes for consideration:
 
+  * We recommend turning on secure-mode Hadoop before configuring the cluster to use Lustre.
+    We recommend skipping steps 1, 2, and 3 and configuring secure-mode Hadoop.
+    Verify that the cluster works in secure-mode before returning to these instructions and begin with step 1.
   * The steps required for single-tenant Hadoop (above) should be followed with the addition that all
     users of Hadoop will also need accounts on the Lustre MGS/MDS.
   * Secure-mode Hadoop requires Kerberos. A Kerberos server will have to be available, and all Hadoop nodes
     configured to use it.
-  * Any user using a secure-mode Hadoop cluster will need an account on all Hadoop nodes, which is not
+  * Any user using a secure-mode Hadoop cluster will need an account on all Hadoop nodes, which is often not
     how a typical Hadoop cluster is set up.
     Configuring the Hadoop nodes to use LDAP (or equivalent) for logins may be beneficial.
-  * Each user will need a directory named `{$fs.lustrefs.mount}/user/{$username}` and owned by that user.
-  * We recommend turning on secure-mode Hadoop before configuring the cluster to use Lustre.
-    Verify that the cluster works in secure-mode before switching to Lustre.
+  * Each user will need a directory named `{$fs.lustrefs.mount}/user/{$username}` and owned by that user,
+    similar to the last bullet point in the single-tenant setup section.
+    Users can store/access data on Lustre outside of the `{$fs.lustrefs.mount}` hierarchy (see below),
+    but Hadoop uses this user-specific directory for job staging.
+    Therefore, each user must have a directory created for them under this hierarchy.
   * The Cloudera Manager has
     [a Kerberos Authentication Wizard](https://www.cloudera.com/content/cloudera/en/documentation/core/latest/topics/cm_sg_intro_kerb.html)
     that helps with setting up secure-mode Hadoop.
@@ -199,25 +209,27 @@ Here are some brief notes for consideration:
     [instructions on setting up secure-mode](http://docs.hortonworks.com/HDPDocuments/HDP2/HDP-2.2.0/HDP_Man_Install_v22/index.html#Item1.26.3.2)
     within their framework.
 
-###4. RESTART AND RUNNING WITH LUSTRE
+###4. RESTART AND RUNNING JOBS WITH LUSTRE
 
 After completing the steps above restart the cluster.
 
 Running jobs with Lustre is very similar to using HDFS.
 Paths are either relative to a users directory under `{$fs.lustrefs.mount}`, or absolute.
-The following commands are equivalent for a user named `jane`:
+The following commands are equivalent for a user named `jane` (where `{$fs.lustrefs.mount}=/mnt/lustre/hadoop`):
 
   * `$ hadoop jar application.jar appName inputDir ouputDir`
   * `$ hadoop jar application.jar appName /mnt/lustre/hadoop/user/jane/inputDir /mnt/lustre/hadoop/user/jane/outputDir`
 
 Users can access data anywhere on Lustre that they have permissions to, even if they are outside of the
 `{$fs.lustrefs.mount}/user/{$username}` hierarchy.
+Users, therefore, do not have to use their `{$fs.lustrefs.mount}/user/{$username}` directory
+if they already have a working directory elsewhere on Lustre.
 
 HDFS can be run on the Hadoop nodes even with LustreFS as the default file system.
 Jobs can be run between HDFS and Lustre. The command below illustrates a job that
 takes data in from HDFS and outputs to Lustre:
 
-`$ hadoop jar application.jar appName hdfs://hdfs_namenode:8020/user/jane/d1 d2`
+`$ hadoop jar application.jar appName hdfs://hdfs_namenode:8020/user/jane/inputDir outputDir`
 
 ##FOR HACKERS
 
@@ -239,11 +251,9 @@ Building the plugin from source requires [Maven](http://maven.apache.org/) and t
 Change to lustre-hadoop directory and build the plugin.
 
   * cd lustre-hadoop/
-  * mvn package -DskipTests
+  * mvn package
 
-On a successful build the plugin will be present in the `target` directory. (NOTE: version number will be a part of the plugin and may be different than below). Copy the plugin to lib/ directory in your $HADOOP_HOME dir.
-
-  * cp target/lustrefs-(version.number).jar $HADOOP_HOME/lib
+On a successful build the plugin will be present in the `target` directory.
 
 ##CONTACT
 
