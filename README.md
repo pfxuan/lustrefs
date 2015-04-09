@@ -212,10 +212,6 @@ Here are some brief notes for consideration:
     Configuring the Hadoop nodes to use LDAP (or equivalent) for logins may be beneficial.
   * Each user will need a directory named `{$fs.lustrefs.mount}/user/{$username}` and owned by that user,
     similar to the last bullet point in the single-tenant setup section.
-    Users can store/access data on Lustre outside of the `{$fs.lustrefs.mount}` hierarchy (see below),
-    but Hadoop uses this user-specific directory for job staging.
-    Therefore, each user must have a directory created for them under this hierarchy.
-    This is functionally no different than HDFS.
   * The Cloudera Manager has
     [a Kerberos Authentication Wizard](https://www.cloudera.com/content/cloudera/en/documentation/core/latest/topics/cm_sg_intro_kerb.html)
     that helps with setting up secure-mode Hadoop.
@@ -233,11 +229,6 @@ The following commands are equivalent for a user named `jane` (where `{$fs.lustr
 
   * `$ hadoop jar application.jar appName inputDir ouputDir`
   * `$ hadoop jar application.jar appName /mnt/lustre/hadoop/user/jane/inputDir /mnt/lustre/hadoop/user/jane/outputDir`
-
-Users can access data anywhere on Lustre that they have permissions to, even if they are outside of the
-`{$fs.lustrefs.mount}/user/{$username}` hierarchy.
-Users, therefore, do not have to use their `{$fs.lustrefs.mount}/user/{$username}` directory
-if they already have a working directory elsewhere on Lustre.
 
 HDFS can be run on the Hadoop nodes even with LustreFS as the default file system.
 Jobs can be run between HDFS and Lustre. The command below illustrates a job that
