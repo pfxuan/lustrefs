@@ -3,25 +3,25 @@
 ##INTRODUCTION
 
 This document describes how to use Lustre as the primary backing store with Hadoop.
-This plugin replaces the default hadoop file system (typically, the Hadoop Distributed File System, HDFS) with the 
+This plugin replaces, or augments, the default Hadoop file system (typically, the Hadoop Distributed File System, HDFS) with the 
 Lustre File System, which writes to a shared Lustre mount point that is accessible by all machines
 in the Hadoop cluster.
 Please note that HDFS is compatible with this plugin and does not need to be turned off when using this plugin & configuration.
 
-**NOTE: This plugin is based off of the GlusterFS Hadoop plugin with
-modifications for Lustre. The original plugin, with source, is available
-[here](https://forge.gluster.org/hadoop) with some documentation
-[here](https://forge.gluster.org/hadoop/pages/Architecture).
-We have included the GlusterFS plugin source within the repository as well.**
-
-
 ##REQUIREMENTS
 
-  * Supported OS is GNU/Linux
+  * GNU/Linux
   * Lustre client installed on all machines in the cluster and Lustre mounted to the same mountpoint
     on all nodes (e.g. `/mnt/lustre`)
   * Java Runtime Environment (JRE, for Hadoop)
-  * Hadoop
+  * A fully-functional Hadoop installation
+
+##KNOWN COMPATIBILITY
+
+We have successfully configured Hadoop to use LustreFS on a variety of systems and configurations, including:
+
+  * Centos 6.4, Cloudera 5.3.1-1, Lustre Client 1.8.9, 10/40 GbE
+  * Ubuntu 12.04.5 LTS, Hortonworks 2.2, Lustre Client 1.8.5, Infiniband
 
 ##INSTALLATION
 
@@ -89,9 +89,8 @@ These changes should be made through the Cloudera or Hortonworks web interface i
 ```
 <property>
   <name>yarn.app.mapreduce.am.staging-dir</name>
-  <value>/file/path</value>
-  <description>Note that this path *should not* include the full path to lustre
-  (i.e. skip the content of fs.lustrefs.mount).
+  <value>/mnt/lustre/hadoop/yarn/staging</value>
+  <description>Ensure that this path is on Lustre.
   </description>
 </property>
 ```
@@ -105,9 +104,18 @@ See below for an example of how to run jobs between HDFS and Lustre.
 <property>
   <name>fs.defaultFS</name>
   <value>hdfs://namenode:8020/</value>
-  <description>HDFS 
+  <description>HDFS should *not* use LustreFS.
+  </description>
 </property>
 ```
+
+####XML Chain Order
+
+In come cases, we have observed issues with different Hadoop services parsing the
+various XML configuration files in different orders.
+In particular, the `fs.defaultFS` property sometimes gets overridden in unexpected ways.
+A `<final>true</final>` tag may have to be added to the entry/ies for
+`fs.defaultFS` in order to ensure each service defaults to the correct file system.
 
 ###ECOSYSTEM CONFIGURATION CHANGES
 
@@ -116,35 +124,39 @@ Several Hadoop ecosystem projects need special consideration to use this plugin.
 ####Pig (pig.properties)
 
 ```
-# Note that this path *should not* include the full path to lustre,
-# similar to yarn.app.mapreduce.am.staging-dir.
-pig.tmp.dir=/file/path/on/lustre
+# Ensure that this path is on Lustre.
+pig.tmp.dir=/mnt/lustre/hadoop/pig/tmp
 
 ```
 
 ####Hive (hive-site.xml)
 
+Note that versions of Hive < 0.14 do not work well with LustreFS because they
+lack [a fix](https://issues.apache.org/jira/browse/HIVE-7583) to file permissions handling.
+We recommend using a version of Hive >= 0.14.
+
 ```
 <property>
   <name>hive.metastore.warehouse.dir</name>
-  <value>/file/path</value>
-  <description>Note that this path *should not* include the full path to lustre,
-  similar to yarn.app.mapreduce.am.staging-dir.
+  <value>/mnt/lustre/hadoop/hive/warehouse</value>
+  <description>Ensure that this path is on Lustre.
+  Note that this directory needs to be world-writeable.
   </description>
 </property>
 
 <property>
   <name>hive.exec.scratchdir</name>
-  <value>/file/path</value>
-  <description>Note that this path *should not* include the full path to lustre,
-  similar to yarn.app.mapreduce.am.staging-dir.
+  <value>/mnt/lustre/hadoop/hive/scratchdir</value>
+  <value>/mnt/lustre/hadoop/hive/warehouse</value>
+  <description>Ensure that this path is on Lustre.
+  Note that this directory needs to be world-writeable.
   </description>
 </property>
 ```
 
 ###3. FILE PERMISSIONS
 
-The detais of running a Hadoop job using the Lustre plugin are different than when a job is run using HDFS.
+The details of running a Hadoop job using the Lustre plugin are different than when a job is run using HDFS.
 This has to do with the fact that file permissions when using Lustre are handled through the usual POSIX paradigm,
 instead of HDFS and its own internal file permissions system.
 For example, when a MapReduce job is run using YARN in a Cloudera cluster,
@@ -154,18 +166,21 @@ This is obviously not acceptable for a multi-tenant system.
 
 ###SINGLE-TENANT SETUP
 
-If it is acceptible to have all the files needed for Hadoop jobs owned by/accessible to 'yarn,'
+If it is acceptable to have all the files needed for Hadoop jobs owned by/accessible to 'yarn,'
 here are the recommended steps required to make the system work:
 
   * After making the XML changes above, and before (re)staring Hadoop, create a directory on
     Lustre that is **world-writeable** (e.g. `chmod 777`).
     This is the directory specified in the `fs.lustrefs.mount` parameter in the XML file(s).
     Hadoop (and ecosystem services)
-    will make properly-owned subdirectories under this directory upon (re)start.
+    can then make properly-owned subdirectories under this directory upon (re)start.
     Once the various services are known to be working, the permissions of this directory can
     be rolled back to be less permissive (e.g. `chmod 755`).
     The final ownership of the directory is not important, but we recommend
     setting the ownership to 'root' or one of the hadoop service accounts.
+  * We also suggest, if needed, to clone the directory structure that exists in HDFS onto Lustre.
+    Additionally, if there are common files stored in HDFS, they may need to be copied to Lustre
+    to the equivalent location.
   * All UNIX accounts used for Hadoop services (e.g. 'yarn' or 'mapred') need to be created on the Lustre MGS/MDS.
     Specifically, the UIDs/GIDs, and group memberships of the Hadoop UNIX service accounts,
     need to be mirrored on the Lustre MGS/MDS.
@@ -202,6 +217,7 @@ Here are some brief notes for consideration:
     Users can store/access data on Lustre outside of the `{$fs.lustrefs.mount}` hierarchy (see below),
     but Hadoop uses this user-specific directory for job staging.
     Therefore, each user must have a directory created for them under this hierarchy.
+    This is functionally no different than HDFS.
   * The Cloudera Manager has
     [a Kerberos Authentication Wizard](https://www.cloudera.com/content/cloudera/en/documentation/core/latest/topics/cm_sg_intro_kerb.html)
     that helps with setting up secure-mode Hadoop.
@@ -231,13 +247,22 @@ takes data in from HDFS and outputs to Lustre:
 
 `$ hadoop jar application.jar appName hdfs://hdfs_namenode:8020/user/jane/inputDir outputDir`
 
+We have seen cases where it is difficult to configure all parts of Hadoop such that they find the lustrefs jar file.
+In this case, it is possible to add the jar file to the CLASSPATH manually as follows:
+
+`$ hadoop jar application.jar appName -libjars /path/to/lustrefs-hadoop-(version).jar inputDir ouputDir`
+
 ##FOR HACKERS
 
-Currently, we use the hadoop RawLocalFileSystem as 
-the basis - and wrap it with the LustreVolume class.  That class is then used by the 
-Hadoop 1x (LustreFileSystem) and Hadoop 2x (LustreFs) adapters.
+This plugin is based off of the GlusterFS Hadoop plugin with
+modifications for Lustre. The original plugin, with source, is available
+[here](https://forge.gluster.org/hadoop) with some documentation
+[here](https://forge.gluster.org/hadoop/pages/Architecture).
+We have included the GlusterFS plugin source within the repository as well.
 
- * src/, source files within the usual painfully deep Java hierarchy
+The hadoop RawLocalFileSystem is the basis and it's wrapped with the LustreVolume class.
+
+ * src/, source and testing files within the usual painfully deep Java hierarchy
  * conf/, sample configuration files
  * pom.xml, Maven build file
  * COPYING, Apache license
@@ -253,16 +278,15 @@ Change to lustre-hadoop directory and build the plugin.
   * cd lustre-hadoop/
   * mvn package
 
-On a successful build the plugin will be present in the `target` directory.
+On a successful build the plugin jar will be present in the `target` directory.
 
 ##CONTACT
 
 For general inquiries, please contact <hadoop.on.lustre@seagate.com>.
-For techinical inquries, please contact Stephen Skory <stephen.skory@seagate.com>.
+For technical inquiries, please contact Stephen Skory <stephen.skory@seagate.com>.
 
 ##COPYRIGHT
 
 This source code is being released under the Apache license.
 Please see the COPYING file included in this repository.
-This is the same license as the GlusterFS Hadoop plugin that this plugin is based off of.
-
+This is the same license as the GlusterFS Hadoop plugin.
