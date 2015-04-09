@@ -126,7 +126,6 @@ Several Hadoop ecosystem projects need special consideration to use this plugin.
 ```
 # Ensure that this path is on Lustre.
 pig.tmp.dir=/mnt/lustre/hadoop/pig/tmp
-
 ```
 
 ####Hive (hive-site.xml)
@@ -147,7 +146,6 @@ We recommend using a version of Hive >= 0.14.
 <property>
   <name>hive.exec.scratchdir</name>
   <value>/mnt/lustre/hadoop/hive/scratchdir</value>
-  <value>/mnt/lustre/hadoop/hive/warehouse</value>
   <description>Ensure that this path is on Lustre.
   Note that this directory needs to be world-writeable.
   </description>
