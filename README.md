@@ -117,41 +117,6 @@ In particular, the `fs.defaultFS` property sometimes gets overridden in unexpect
 A `<final>true</final>` tag may have to be added to the entry/ies for
 `fs.defaultFS` in order to ensure each service defaults to the correct file system.
 
-###ECOSYSTEM CONFIGURATION CHANGES
-
-Several Hadoop ecosystem projects need special consideration to use this plugin.
-
-####Pig (pig.properties)
-
-```
-# Ensure that this path is on Lustre.
-pig.tmp.dir=/mnt/lustre/hadoop/pig/tmp
-```
-
-####Hive (hive-site.xml)
-
-Note that versions of Hive < 0.14 do not work well with LustreFS because they
-lack [a fix](https://issues.apache.org/jira/browse/HIVE-7583) to file permissions handling.
-We recommend using a version of Hive >= 0.14.
-
-```
-<property>
-  <name>hive.metastore.warehouse.dir</name>
-  <value>/mnt/lustre/hadoop/hive/warehouse</value>
-  <description>Ensure that this path is on Lustre.
-  Note that this directory needs to be world-writeable.
-  </description>
-</property>
-
-<property>
-  <name>hive.exec.scratchdir</name>
-  <value>/mnt/lustre/hadoop/hive/scratchdir</value>
-  <description>Ensure that this path is on Lustre.
-  Note that this directory needs to be world-writeable.
-  </description>
-</property>
-```
-
 ###3. FILE PERMISSIONS
 
 The details of running a Hadoop job using the Lustre plugin are different than when a job is run using HDFS.
